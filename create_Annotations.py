@@ -17,10 +17,16 @@ _INDENT = ' ' * 4
 _NEW_LINE = '\n'
 _FOLDER_NODE = 'VOC2007'
 _ROOT_NODE = 'annotation'
-_DATABASE_NAME = 'INRIA'
-_CLASS = 'person'
-_ANNOTATION = 'PASCAL VOC2007'
-_AUTHOR = 'Peic'
+_DATABASE_NAME = 'TERROR'
+_ANNOTATION = 'TERROR-Version'
+_AUTHOR = 'Qiniu AtLab'
+_CLASS_MAP = {
+    'labelbyline1': 'label1',
+    'labelbyline2': 'label2',
+    'labelbyline3': 'label3',
+    'labelbyline4': 'label4',
+    'labelbyline5': 'label5'
+}
 
 _SEGMENTED = '0'
 _DIFFICULT = '0'
@@ -44,15 +50,15 @@ def createElementNode(doc, tag, attr):
 
     # 将文本节点作为元素节点的子节点
     element_node.appendChild(text_node)
-    
+
     return element_node
 
 
 # 封装添加一个子节点的过程
 def createChildNode(doc, tag, attr, parent_node):
-
     child_node = createElementNode(doc, tag, attr)
     parent_node.appendChild(child_node)
+
 
 # object节点比较特殊
 def createObjectNode(doc, attrs):
@@ -71,12 +77,12 @@ def createObjectNode(doc, attrs):
 
     return object_node
 
+
 # 将documentElement写入XML文件中
 def writeXMLFile(doc, filename):
     tmpfile = open('tmp.xml', 'w')
-    doc.writexml(tmpfile, addindent=' '*4, newl='\n', encoding='utf-8')
+    doc.writexml(tmpfile, addindent=' ' * 4, newl='\n', encoding='utf-8')
     tmpfile.close()
-
 
     # 删除第一行默认添加的标记
     fin = open('tmp.xml')
@@ -87,14 +93,14 @@ def writeXMLFile(doc, filename):
         if line.split():
             fout.writelines(line)
 
-    #new_lines = ''.join(lines[1:])
-    #fout.write(new_lines)
+    # new_lines = ''.join(lines[1:])
+    # fout.write(new_lines)
     fin.close()
     fout.close()
 
+
 # 创建XML文档并写入节点信息
 def createXMLFile(attrs, width, height, filename):
-
     # 创建文档对象, 文档对象用于创建各种节点
     my_dom = xml.dom.getDOMImplementation()
     doc = my_dom.createDocument(None, _ROOT_NODE, None)
@@ -104,7 +110,7 @@ def createXMLFile(attrs, width, height, filename):
 
     # folder节点
     createChildNode(doc, 'folder', _FOLDER_NODE, root_node)
-    
+
     # filename节点
     createChildNode(doc, 'filename', attrs['name'], root_node)
 
@@ -141,6 +147,7 @@ def createXMLFile(attrs, width, height, filename):
     # 写入文件
     writeXMLFile(doc, filename)
 
+
 if __name__ == "__main__":
 
     ouput_file = open(_TXT_PATH)
@@ -156,28 +163,29 @@ if __name__ == "__main__":
         print
         attrs = dict()
         attrs['name'] = array[0]
-        attrs['classification'] = _CLASS
-        attrs['xmin'] = array[1]
-        attrs['ymin'] = array[2]
-        attrs['xmax'] = array[3]
-        attrs['ymax'] = array[4]
+        attrs['classification'] = _CLASS_MAP[array[1]]
+        # pixel坐标不为负
+        attrs['xmin'] = str(max(float(array[2]), 0))
+        attrs['ymin'] = str(max(float(array[3]), 0))
+        attrs['xmax'] = str(max(float(array[4]), 0))
+        attrs['ymax'] = str(max(float(array[5]), 0))
 
         # 构建XML文件名称
         xml_file_name = os.path.join(_ANNOTATION_SAVE_PATH, (attrs['name'].split('.'))[0] + '.xml')
         print xml_file_name
 
-        if os.path.exists( xml_file_name):
+        if os.path.exists(xml_file_name):
             # print('do exists')
             existed_doc = xml.dom.minidom.parse(xml_file_name)
             root_node = existed_doc.documentElement
-            
+
             # 如果XML存在了, 添加object节点信息即可
             object_node = createObjectNode(existed_doc, attrs)
             root_node.appendChild(object_node)
 
             # 写入文件
             writeXMLFile(existed_doc, xml_file_name)
-            
+
         else:
             # print('not exists')
             # 如果XML文件不存在, 创建文件并写入节点信息
@@ -187,8 +195,6 @@ if __name__ == "__main__":
             img = Image.open(img_path)
             width, height = img.size
             img.close()
-            
+
             # 创建XML文件
             createXMLFile(attrs, width, height, xml_file_name)
-
-
